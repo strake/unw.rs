@@ -29,6 +29,9 @@ extern "C" {
 
     #[link_name = "unw_strerror"]
     fn c_strerror(_: usize) -> *const u8;
+
+    #[link_name = "unw_get_proc_name"]
+    fn c_get_proc_name(_: *const Frame, _: *mut u8, _: usize, _: *mut usize) -> isize;
 }
 
 impl Cxt {
@@ -56,6 +59,16 @@ impl Frame {
             Equal   => Ok(None),
         }
     }
+
+    #[inline]
+    pub fn loc<A, F: FnOnce(&[u8], usize) -> A>(self, f: F) -> Result<A, Error> { unsafe {
+        let mut bs: [u8; 4096] = mem::uninitialized();
+        let mut offset: usize = mem::uninitialized();
+        match c_get_proc_name(&self, &mut bs[0], bs.len(), &mut offset) {
+            0 => Ok(f(&Nul::new_unchecked(&bs[0])[..], offset)),
+            e => Err(Error(-e as _)),
+        }
+    } }
 }
 
 impl TryFrom<Cxt> for Frame {
