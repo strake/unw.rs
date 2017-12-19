@@ -33,9 +33,12 @@ extern "C" {
 
 impl Cxt {
     #[inline(always)]
-    pub fn new() -> Option<Self> { unsafe {
+    pub fn new() -> Result<Self, Error> { unsafe {
         let mut cxt = mem::uninitialized();
-        if 0 == c_getcxt(&mut cxt) { Some(cxt) } else { None }
+        match c_getcxt(&mut cxt) {
+            0 => Ok(cxt),
+            e => Err(Error(-e as _)),
+        }
     } }
 }
 
